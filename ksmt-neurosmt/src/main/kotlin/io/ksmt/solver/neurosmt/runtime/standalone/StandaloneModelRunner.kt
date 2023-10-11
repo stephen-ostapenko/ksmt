@@ -7,6 +7,7 @@ import io.ksmt.KContext
 import io.ksmt.solver.KSolverStatus
 import io.ksmt.solver.neurosmt.deserialize
 import io.ksmt.solver.neurosmt.runtime.NeuroSMTModelRunner
+import java.io.BufferedInputStream
 import java.io.File
 import java.io.FileInputStream
 import java.nio.file.Files
@@ -79,10 +80,10 @@ fun main(args: Array<String>) {
 
     val runner = NeuroSMTModelRunner(
         ctx,
-        ordinalsPath = arguments.ordinalsPath,
-        embeddingPath = arguments.embeddingsPath,
-        convPath = arguments.convPath,
-        decoderPath = arguments.decoderPath
+        ordinalsAsStream = BufferedInputStream(FileInputStream(arguments.ordinalsPath)),
+        embeddingLayerAsStream = BufferedInputStream(FileInputStream(arguments.embeddingsPath)),
+        convLayerAsStream = BufferedInputStream(FileInputStream(arguments.convPath)),
+        decoderAsStream = BufferedInputStream(FileInputStream(arguments.decoderPath))
     )
 
     val modelRunTimes = mutableListOf<Long>()

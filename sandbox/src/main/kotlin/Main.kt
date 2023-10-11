@@ -10,6 +10,7 @@ import io.ksmt.runner.serializer.AstSerializationCtx
 import io.ksmt.solver.KSolver
 import io.ksmt.solver.KSolverConfiguration
 import io.ksmt.solver.KSolverStatus
+import io.ksmt.solver.neurosmt.KNeuroSMTSolver
 import io.ksmt.solver.neurosmt.getAnswerForTest
 import io.ksmt.solver.neurosmt.runtime.NeuroSMTModelRunner
 import io.ksmt.solver.z3.*
@@ -134,20 +135,24 @@ const val THRESHOLD = 0.5
 fun main() {
 
     val ctx = KContext(
-        astManagementMode = KContext.AstManagementMode.NO_GC,
+        // astManagementMode = KContext.AstManagementMode.NO_GC,
         simplificationMode = KContext.SimplificationMode.NO_SIMPLIFY
     )
 
     val pathToDataset = "formulas"
+    //val pathToDataset = "/home/stephen/src/ksmt/ksmt-neurosmt/utils/formulas"
     val files = Files.walk(Path.of(pathToDataset)).filter { it.isRegularFile() }.toList()
 
+    /*
     val runner = NeuroSMTModelRunner(
         ctx,
-        ordinalsPath = "usvm-enc-2.cats",
+        ordinalsPath = "encoder-ordinals",
         embeddingPath = "embeddings.onnx",
         convPath = "conv.onnx",
         decoderPath = "decoder.onnx"
     )
+    */
+    val solver = KNeuroSMTSolver(ctx)
 
     var sat = 0; var unsat = 0; var skipped = 0
     var ok = 0; var wa = 0
@@ -181,7 +186,8 @@ fun main() {
             return@sample
         }
 
-        val prob = with(ctx) {
+        val output = with(ctx) {
+            /*
             val formula = when (assertList.size) {
                 0 -> {
                     skipped++
@@ -194,15 +200,28 @@ fun main() {
                     mkAnd(assertList)
                 }
             }
+            */
 
-            runner.run(formula)
+            if (assertList.isEmpty()) {
+                skipped++
+                return@sample
+            }
+
+            for (a in assertList) {
+                solver.assert(a)
+            }
+
+            // runner.run(formula)
+            solver.check()
         }
 
+        /*
         val output = if (prob < THRESHOLD) {
             KSolverStatus.UNSAT
         } else {
             KSolverStatus.SAT
         }
+        */
 
         when (answer) {
             KSolverStatus.SAT -> sat++
@@ -223,6 +242,9 @@ fun main() {
                 v + 1
             }
         }
+
+        solver.pop()
+        solver.push()
     }
 
     println()

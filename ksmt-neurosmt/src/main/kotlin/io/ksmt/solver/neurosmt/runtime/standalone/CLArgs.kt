@@ -16,7 +16,7 @@ class CLArgs : CliktCommand() {
         option("-o", "--ordinals", help = "path to ordinal encoder categories").required()
 
     val embeddingsPath: String by
-        option("-e", "--embeddings", help = "path to embeddings layer").required()
+        option("-e", "--embeddings", help = "path to embedding layer").required()
 
     val convPath: String by
         option("-c", "--conv", help = "path to conv layer").required()
