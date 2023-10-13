@@ -18,13 +18,20 @@ import kotlin.io.path.name
 fun main(args: Array<String>) {
     val inputRoot = args[0]
     val outputRoot = args[1]
+    val simplify = args.getOrNull(2) == "simplify"
 
     val files = Files.walk(Path.of(inputRoot)).filter { it.isRegularFile() }
 
     var ok = 0; var fail = 0
     var sat = 0; var unsat = 0; var skipped = 0
 
-    val ctx = KContext(simplificationMode = KContext.SimplificationMode.NO_SIMPLIFY)
+    val ctx = KContext(
+        simplificationMode = if (simplify) {
+            KContext.SimplificationMode.SIMPLIFY
+        } else {
+            KContext.SimplificationMode.NO_SIMPLIFY
+        }
+    )
 
     var curIdx = 0
     ProgressBar.wrap(files, "converting smt2 files").forEach {

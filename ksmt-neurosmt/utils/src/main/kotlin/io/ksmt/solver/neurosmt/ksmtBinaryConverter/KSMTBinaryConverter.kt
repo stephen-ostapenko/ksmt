@@ -20,6 +20,7 @@ fun main(args: Array<String>) {
     val inputRoot = args[0]
     val outputRoot = args[1]
     val timeout = args[2].toInt().seconds
+    val simplify = args.getOrNull(3) == "simplify"
 
     val files = Files.walk(Path.of(inputRoot)).filter { it.isRegularFile() }
 
@@ -27,7 +28,13 @@ fun main(args: Array<String>) {
 
     var sat = 0; var unsat = 0; var skipped = 0
 
-    val ctx = KContext(simplificationMode = KContext.SimplificationMode.NO_SIMPLIFY)
+    val ctx = KContext(
+        simplificationMode = if (simplify) {
+            KContext.SimplificationMode.SIMPLIFY
+        } else {
+            KContext.SimplificationMode.NO_SIMPLIFY
+        }
+    )
 
     var curIdx = 0
     ProgressBar.wrap(files, "converting ksmt binary files").forEach {

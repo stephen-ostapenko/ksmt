@@ -2,6 +2,7 @@ package io.ksmt.solver.neurosmt.runtime.standalone
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.github.ajalt.clikt.parameters.types.double
@@ -27,4 +28,7 @@ class CLArgs : CliktCommand() {
     val threshold: Double by
         option("-t", "--threshold", help = "probability threshold for sat/unsat decision")
             .double().default(0.5)
+
+    val simplify: Boolean by
+        option("-s", "--simplify", help = "simplify formulas before solving").flag(default = false)
 }

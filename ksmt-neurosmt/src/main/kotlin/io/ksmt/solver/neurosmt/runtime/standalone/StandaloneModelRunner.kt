@@ -71,9 +71,16 @@ fun main(args: Array<String>) {
         return
     }
 
+    println("got arguments:")
+    println(arguments)
+
     val ctx = KContext(
         astManagementMode = KContext.AstManagementMode.NO_GC,
-        simplificationMode = KContext.SimplificationMode.NO_SIMPLIFY
+        simplificationMode = if (arguments.simplify) {
+            KContext.SimplificationMode.SIMPLIFY
+        } else {
+            KContext.SimplificationMode.NO_SIMPLIFY
+        }
     )
 
     val files = Files.walk(Path.of(arguments.datasetPath)).filter { it.isRegularFile() }.toList()
