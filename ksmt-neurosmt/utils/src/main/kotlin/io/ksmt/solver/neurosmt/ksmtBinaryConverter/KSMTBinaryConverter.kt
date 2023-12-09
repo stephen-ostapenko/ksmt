@@ -33,20 +33,12 @@ fun main(args: Array<String>) {
             KContext.SimplificationMode.SIMPLIFY
         } else {
             KContext.SimplificationMode.NO_SIMPLIFY
-        }
+        },
+        astManagementMode = KContext.AstManagementMode.GC
     )
 
     var curIdx = 0
-    ProgressBar.wrap(files, "converting ksmt binary files").forEach {
-        val relFile = it.toFile().relativeTo(File(inputRoot))
-        val parentDirFile = if (relFile.parentFile == null) {
-            "."
-        } else {
-            relFile.parentFile.path
-        }
-        val outputDir = File(outputRoot, parentDirFile)
-        outputDir.mkdirs()
-
+    ProgressBar.wrap(files.toList(), "converting ksmt binary files").forEach {
         val assertList = try {
             deserialize(ctx, FileInputStream(it.toFile()))
         } catch (e: Exception) {
@@ -64,6 +56,15 @@ fun main(args: Array<String>) {
             skipped++
             return@forEach
         }
+
+        val relFile = it.toFile().relativeTo(File(inputRoot))
+        val parentDirFile = if (relFile.parentFile == null) {
+            "."
+        } else {
+            relFile.parentFile.path
+        }
+        val outputDir = File(outputRoot, parentDirFile)
+        outputDir.mkdirs()
 
         with(ctx) {
             val formula = when (assertList.size) {

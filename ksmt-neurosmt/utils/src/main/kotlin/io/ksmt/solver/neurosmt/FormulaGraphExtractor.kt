@@ -38,31 +38,25 @@ class FormulaGraphExtractor(
 
     private fun <T : KSort> writeSymbolicVariable(symbol: KConst<T>) {
         writer.write("SYMBOLIC;")
-
-        val sort = symbol.decl.sort
-        when (sort) {
-            is KBoolSort -> writer.write("Bool")
-            is KBvSort -> writer.write("BitVec")
-            is KFpSort -> writer.write("FP")
-            is KFpRoundingModeSort -> writer.write("FP_RM")
-            is KArraySortBase<*> -> writer.write("Array")
-            is KUninterpretedSort -> writer.write(sort.name)
-            else -> error("unknown symbolic sort: ${sort::class.simpleName}")
-        }
+        writeSort(symbol.decl.sort)
     }
 
     private fun <T : KSort> writeValue(value: KInterpretedValue<T>) {
         writer.write("VALUE;")
+        writeSort(value.decl.sort)
+    }
 
-        val sort = value.decl.sort
+    private fun <T : KSort> writeSort(sort: T) {
         when (sort) {
             is KBoolSort -> writer.write("Bool")
+            is KIntSort -> writer.write("Int")
+            is KRealSort -> writer.write("Real")
             is KBvSort -> writer.write("BitVec")
             is KFpSort -> writer.write("FP")
             is KFpRoundingModeSort -> writer.write("FP_RM")
             is KArraySortBase<*> -> writer.write("Array")
             is KUninterpretedSort -> writer.write(sort.name)
-            else -> error("unknown value sort: ${sort::class.simpleName}")
+            else -> error("unknown sort: ${sort::class.simpleName}")
         }
     }
 

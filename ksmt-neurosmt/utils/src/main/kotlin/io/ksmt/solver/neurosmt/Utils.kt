@@ -42,6 +42,19 @@ fun getAnswerForTest(ctx: KContext, formula: List<KExpr<KBoolSort>>, timeout: Du
     }
 }
 
+// check formula category
+fun checkFormulaCategory(path: Path, category: String): Boolean {
+    File(path.toUri()).useLines { lines ->
+        for (line in lines) {
+            if (line == "(set-info :category \"$category\")") {
+                return true
+            }
+        }
+    }
+
+    return false
+}
+
 // serialize ksmt formula to binary file
 fun serialize(ctx: KContext, expressions: List<KExpr<KBoolSort>>, outputStream: OutputStream) {
     val serializationCtx = AstSerializationCtx().apply { initCtx(ctx) }

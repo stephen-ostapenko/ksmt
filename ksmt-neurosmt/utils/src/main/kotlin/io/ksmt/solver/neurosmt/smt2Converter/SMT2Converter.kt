@@ -4,6 +4,7 @@ import io.ksmt.KContext
 import io.ksmt.parser.KSMTLibParseException
 import io.ksmt.solver.KSolverStatus
 import io.ksmt.solver.neurosmt.FormulaGraphExtractor
+import io.ksmt.solver.neurosmt.checkFormulaCategory
 import io.ksmt.solver.neurosmt.getAnswerForTest
 import io.ksmt.solver.z3.KZ3SMTLibParser
 import me.tongfei.progressbar.ProgressBar
@@ -30,57 +31,75 @@ fun main(args: Array<String>) {
             KContext.SimplificationMode.SIMPLIFY
         } else {
             KContext.SimplificationMode.NO_SIMPLIFY
-        }
+        },
+        astManagementMode = KContext.AstManagementMode.GC
     )
 
     var curIdx = 0
-    ProgressBar.wrap(files, "converting smt2 files").forEach {
+    ProgressBar.wrap(files.toList(), "converting smt2 files").forEach {
         if (!it.name.endsWith(".smt2")) {
             return@forEach
         }
 
-        val answer = getAnswerForTest(it)
-
-        if (answer == KSolverStatus.UNKNOWN) {
+        if (!checkFormulaCategory(it, "industrial")) {
             skipped++
             return@forEach
         }
 
         with(ctx) {
-            val formula = try {
-                val assertList = KZ3SMTLibParser(ctx).parse(it)
-                when (assertList.size) {
-                    0 -> {
-                        skipped++
-                        return@forEach
-                    }
-                    1 -> {
-                        ok++
-                        assertList[0]
-                    }
-                    else -> {
-                        ok++
-                        mkAnd(assertList)
-                    }
-                }
+            val assertList = try {
+                KZ3SMTLibParser(ctx).parse(it)
             } catch (e: KSMTLibParseException) {
                 fail++
-                e.printStackTrace()
+                println("e: error in $it: $e")
+                return@forEach
+            } catch (e: NotImplementedError) {
+                fail++
+                println("e: error in $it: $e")
                 return@forEach
             }
 
-            val outputFile = File("$outputRoot/$curIdx-${answer.toString().lowercase()}")
+            val formula = when (assertList.size) {
+                0 -> {
+                    skipped++
+                    return@forEach
+                }
+                1 -> {
+                    ok++
+                    assertList[0]
+                }
+                else -> {
+                    ok++
+                    mkAnd(assertList)
+                }
+            }
+
+            val answer = getAnswerForTest(it)
+
+            if (answer == KSolverStatus.UNKNOWN) {
+                skipped++
+                return@forEach
+            }
+
+            var relFile = it.toFile().relativeTo(File(inputRoot))
+            while (relFile.parentFile != null && relFile.parentFile.parentFile != null) {
+                relFile = relFile.parentFile
+            }
+            val outputDir = File(outputRoot, relFile.toString().replace('/', '-'))
+            outputDir.mkdirs()
+
+            val outputFile = File("$outputDir/$curIdx-${answer.toString().lowercase()}")
             val outputStream = FileOutputStream(outputFile)
             outputStream.write("; $it\n".encodeToByteArray())
 
             val extractor = FormulaGraphExtractor(ctx, formula, outputStream)
             extractor.extractGraph()
-        }
 
-        when (answer) {
-            KSolverStatus.SAT -> sat++
-            KSolverStatus.UNSAT -> unsat++
-            else -> { /* can't happen */ }
+            when (answer) {
+                KSolverStatus.SAT -> sat++
+                KSolverStatus.UNSAT -> unsat++
+                else -> { /* can't happen */ }
+            }
         }
 
         curIdx++
