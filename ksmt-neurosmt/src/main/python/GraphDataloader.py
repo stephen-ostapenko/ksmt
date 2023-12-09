@@ -43,7 +43,12 @@ def load_data(paths_to_datasets: list[str], target: Literal["train", "val", "tes
         print(f"loading data from '{path_to_dataset}'")
 
         with open(os.path.join(path_to_dataset, METADATA_PATH, target), "r") as f:
-            for path_to_sample in tqdm(list(f.readlines())):
+            paths_list = list(f.readlines())
+
+            if "SHRINK_DATASET" in os.environ:
+                paths_list = paths_list[:int(os.environ["SHRINK_DATASET"])]
+
+            for path_to_sample in tqdm(paths_list):
                 path_to_sample = os.path.join(path_to_dataset, path_to_sample.strip())
 
                 operators, edges, depths = read_graph_by_path(

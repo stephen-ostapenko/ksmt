@@ -26,7 +26,7 @@ def classic_random_split(path_to_dataset_root, val_qty, test_qty, align_train_mo
             elif cur_path.endswith("-unsat"):
                 unsat_paths.append(cur_path)
             else:
-                raise Exception(f"strange file path '{cur_path}'")
+                raise Exception(f"unsupported file path '{cur_path}'")
 
     sat_paths = select_paths_with_suitable_samples_and_transform_to_paths_from_root(path_to_dataset_root, sat_paths)
     unsat_paths = select_paths_with_suitable_samples_and_transform_to_paths_from_root(path_to_dataset_root, unsat_paths)
@@ -197,7 +197,7 @@ def get_args():
     parser.add_argument("--val_qty", type=float, default=0.15)
     parser.add_argument("--test_qty", type=float, default=0.1)
 
-    parser.add_argument("--align_train", choices=["none", "upsample", "downsample"], default="upsample")
+    parser.add_argument("--align_train", choices=["none", "upsample", "downsample"], default="none")
     parser.add_argument("--align_val", choices=["none", "upsample", "downsample"], default="none")
     parser.add_argument("--align_test", choices=["none", "upsample", "downsample"], default="none")
 

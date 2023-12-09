@@ -43,7 +43,7 @@ if __name__ == "__main__":
     trainer = Trainer(
         accelerator="auto",
         # precision="bf16-mixed",
-        logger=TensorBoardLogger("../logs", name="neuro-smt"),
+        logger=TensorBoardLogger("../train-logs", name="neuro-smt"),
         callbacks=[ModelCheckpoint(
             filename="epoch_{epoch:03d}_roc-auc_{val/roc-auc:.3f}",
             monitor="val/roc-auc",
@@ -55,7 +55,7 @@ if __name__ == "__main__":
         log_every_n_steps=1,
         enable_checkpointing=True,
         barebones=False,
-        default_root_dir=".."
+        default_root_dir="."
     )
 
     trainer.fit(pl_model, train_dl, val_dl, ckpt_path=args.ckpt)
