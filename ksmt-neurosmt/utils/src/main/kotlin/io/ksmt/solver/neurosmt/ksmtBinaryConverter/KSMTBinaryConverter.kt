@@ -20,7 +20,12 @@ fun main(args: Array<String>) {
     val inputRoot = args[0]
     val outputRoot = args[1]
     val timeout = args[2].toInt().seconds
-    val simplify = args.getOrNull(3) == "simplify"
+
+    if (args[3] !in listOf("graph", "raw")) {
+        throw IllegalArgumentException("specify output format (raw/graph)")
+    }
+    val graphOutput = args[3] == "graph"
+    val simplify = args.getOrNull(4) == "simplify"
 
     val files = Files.walk(Path.of(inputRoot)).filter { it.isRegularFile() }
 
@@ -82,10 +87,16 @@ fun main(args: Array<String>) {
 
             val outputFile = File("$outputDir/$curIdx-${answer.toString().lowercase()}")
             val outputStream = FileOutputStream(outputFile)
-            outputStream.write("; $it\n".encodeToByteArray())
 
-            val extractor = FormulaGraphExtractor(ctx, formula, outputStream)
-            extractor.extractGraph()
+            if (graphOutput) {
+                outputStream.write("; $it\n".encodeToByteArray())
+                val extractor = FormulaGraphExtractor(ctx, formula, outputStream)
+                extractor.extractGraph()
+            } else {
+                val formulaString = StringBuilder()
+                formula.print(formulaString)
+                outputStream.write(formulaString.toString().toByteArray())
+            }
         }
 
         when (answer) {

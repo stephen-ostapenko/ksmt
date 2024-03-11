@@ -6,6 +6,7 @@ import com.jetbrains.rd.framework.SocketWire.Companion.timeout
 import com.jetbrains.rd.framework.UnsafeBuffer
 import io.ksmt.KContext
 import io.ksmt.expr.*
+import io.ksmt.expr.printer.ExpressionPrinterWithLetBindings
 import io.ksmt.runner.serializer.AstSerializationCtx
 import io.ksmt.solver.KSolver
 import io.ksmt.solver.KSolverConfiguration
@@ -139,6 +140,36 @@ fun main() {
         simplificationMode = KContext.SimplificationMode.NO_SIMPLIFY
     )
 
+    with(ctx) {
+        val a by boolSort
+        val b by intSort
+        val c by intSort
+        val d by realSort
+        val e by bv8Sort
+        val f by fp64Sort
+        val g by mkArraySort(realSort, boolSort)
+        val h by fp64Sort
+
+        // val expr = mkBvXorExpr(mkBvShiftLeftExpr(e, mkBv(1.toByte())), mkBvNotExpr(e)) eq
+        // mkBvLogicalShiftRightExpr(e, mkBv(1.toByte()))
+
+        val expr = ((b + c) ge 3.expr) and ((b + c + 2.expr) le 2.expr)
+
+        val kek = 0
+
+        val sb = StringBuilder()
+        expr.print(sb)
+
+        println(sb.toString())
+    }
+
+    return
+
+    /*val ctx = KContext(
+        // astManagementMode = KContext.AstManagementMode.NO_GC,
+        simplificationMode = KContext.SimplificationMode.NO_SIMPLIFY
+    )
+
     val pathToDataset = "formulas"
     //val pathToDataset = "/home/stephen/src/ksmt/ksmt-neurosmt/utils/formulas"
     val files = Files.walk(Path.of(pathToDataset)).filter { it.isRegularFile() }.toList()
@@ -251,7 +282,7 @@ fun main() {
     println("sat: $sat; unsat: $unsat; skipped: $skipped")
     println("ok: $ok; wa: $wa")
 
-    return
+    return*/
 
     /*
     with(ctx) {
