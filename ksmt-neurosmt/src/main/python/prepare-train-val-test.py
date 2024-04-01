@@ -55,19 +55,34 @@ def classic_random_split(path_to_dataset_root, val_qty, test_qty, align_train_mo
 
 
 def grouped_random_split(path_to_dataset_root, val_qty, test_qty, align_train_mode, align_val_mode, align_test_mode):
-    def return_group_weight(path_to_group):
-        return len(os.listdir(path_to_group))
+    def get_all_paths(path_to_dataset_root):
+        res = []
+        for group_name in os.listdir(path_to_dataset_root):
+            if group_name.startswith(METADATA_PATH):
+                continue
 
-    def calc_group_weights(path_to_dataset_root):
-        groups = os.listdir(path_to_dataset_root)
-        if METADATA_PATH in groups:
-            groups.remove(METADATA_PATH)
+            for sample_path in os.listdir(os.path.join(path_to_dataset_root, group_name)):
+                res.append(os.path.join(path_to_dataset_root, group_name, sample_path))
 
-        weights = [return_group_weight(os.path.join(path_to_dataset_root, group)) for group in groups]
+        return res
 
-        return list(zip(groups, weights))
+    paths = get_all_paths(path_to_dataset_root)
 
-    groups = calc_group_weights(path_to_dataset_root)
+    def calc_group_weights(list_of_suitable_samples):
+        groups = dict()
+        for path_to_sample in list_of_suitable_samples:
+            group = path_to_sample.split("/")[0].strip()
+            if group not in groups:
+                groups[group] = 0
+
+            groups[group] += 1
+
+        return list(groups.items())
+
+    list_of_suitable_samples = select_paths_with_suitable_samples_and_transform_to_paths_from_root(
+        path_to_dataset_root, paths
+    )
+    groups = calc_group_weights(list_of_suitable_samples)
 
     def pick_best_split(groups):
         attempts = 100_000
@@ -86,7 +101,8 @@ def grouped_random_split(path_to_dataset_root, val_qty, test_qty, align_train_mo
         best = None
 
         for _ in trange(attempts):
-            cur_split = np.random.randint(3, size=groups_cnt)
+            probs = (np.array([need_train, need_val, need_test]) / samples_cnt + np.array([1, 1, 1]) / 3) / 2
+            cur_split = np.random.choice(range(3), size=groups_cnt, p=probs)
 
             train_size = sum(groups[i][1] for i in range(groups_cnt) if cur_split[i] == 0)
             val_size = sum(groups[i][1] for i in range(groups_cnt) if cur_split[i] == 1)
@@ -101,22 +117,20 @@ def grouped_random_split(path_to_dataset_root, val_qty, test_qty, align_train_mo
 
     split = pick_best_split(groups)
 
+    split_by_group = dict()
+    for i, (group, weight) in enumerate(groups):
+        split_by_group[group] = split[i]
+
     train_data, val_data, test_data = [], [], []
+    for path_to_sample in list_of_suitable_samples:
+        group = path_to_sample.split("/")[0].strip()
 
-    for i in range(len(groups)):
-        cur_group = os.listdir(os.path.join(path_to_dataset_root, groups[i][0]))
-        cur_group = list(map(lambda sample: os.path.join(path_to_dataset_root, groups[i][0], sample), cur_group))
-
-        if split[i] == 0:
-            train_data += cur_group
-        elif split[i] == 1:
-            val_data += cur_group
-        elif split[i] == 2:
-            test_data += cur_group
-
-    train_data = select_paths_with_suitable_samples_and_transform_to_paths_from_root(path_to_dataset_root, train_data)
-    val_data = select_paths_with_suitable_samples_and_transform_to_paths_from_root(path_to_dataset_root, val_data)
-    test_data = select_paths_with_suitable_samples_and_transform_to_paths_from_root(path_to_dataset_root, test_data)
+        if split_by_group[group] == 0:
+            train_data.append(path_to_sample)
+        elif split_by_group[group] == 1:
+            val_data.append(path_to_sample)
+        elif split_by_group[group] == 2:
+            test_data.append(path_to_sample)
 
     def split_data_to_sat_unsat(data):
         sat_data = list(filter(lambda path: path.endswith("-sat"), data))
