@@ -62,13 +62,15 @@ class LightningModel(pl.LightningModule):
             "train/loss", loss.detach().float(),
             prog_bar=True, logger=True,
             on_step=True, on_epoch=True,
-            batch_size=train_batch.num_graphs
+            batch_size=train_batch.num_graphs,
+            sync_dist=True,
         )
         self.log(
             "train/acc", self.acc(out, train_batch.y),
             prog_bar=True, logger=True,
             on_step=False, on_epoch=True,
-            batch_size=train_batch.num_graphs
+            batch_size=train_batch.num_graphs,
+            sync_dist=True,
         )
 
         return loss
@@ -87,13 +89,15 @@ class LightningModel(pl.LightningModule):
             f"{target_name}/loss", loss.float(),
             prog_bar=True, logger=True,
             on_step=False, on_epoch=True,
-            batch_size=batch.num_graphs
+            batch_size=batch.num_graphs,
+            sync_dist=True,
         )
         self.log(
             f"{target_name}/acc", self.acc(out, batch.y),
             prog_bar=True, logger=True,
             on_step=False, on_epoch=True,
-            batch_size=batch.num_graphs
+            batch_size=batch.num_graphs,
+            sync_dist=True,
         )
 
         self.val_outputs.append(out)
@@ -115,7 +119,8 @@ class LightningModel(pl.LightningModule):
         self.log(
             f"{target_name}/roc-auc", self.roc_auc.compute(),
             prog_bar=True, logger=True,
-            on_step=False, on_epoch=True
+            on_step=False, on_epoch=True,
+            sync_dist=True,
         )
         self.roc_auc.reset()
 
@@ -126,7 +131,8 @@ class LightningModel(pl.LightningModule):
             self.log(
                 f"{target_name}/precision_at_{recall}", precision,
                 prog_bar=False, logger=True,
-                on_step=False, on_epoch=True
+                on_step=False, on_epoch=True,
+                sync_dist=True,
             )
 
             precision_at_recall.reset()

@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-import os; os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"; os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["GPU"]
 from argparse import ArgumentParser
 
 import torch
@@ -16,6 +15,7 @@ from LightningModel import LightningModel
 
 def get_args():
     parser = ArgumentParser(description="main training script")
+    parser.add_argument("--name", required=True)
     parser.add_argument("--ds", required=True, nargs="+")
     parser.add_argument("--oenc", required=True)
     parser.add_argument("--ckpt", required=False)
@@ -42,8 +42,9 @@ if __name__ == "__main__":
     pl_model = LightningModel()
     trainer = Trainer(
         accelerator="auto",
+        devices=-1,
         # precision="bf16-mixed",
-        logger=TensorBoardLogger("../train-logs", name="neuro-smt"),
+        logger=TensorBoardLogger("./train-logs", name=args.name),
         callbacks=[ModelCheckpoint(
             filename="epoch_{epoch:03d}_roc-auc_{val/roc-auc:.3f}",
             monitor="val/roc-auc",
