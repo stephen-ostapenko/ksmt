@@ -18,7 +18,10 @@ def get_vertex_type(name: str):
     return VertexType.APP
 
 
-def process_line(line: str, cur_vertex: int, operators: list[str], edges: list[tuple[int, int]], depth: list[int]):
+def process_line(
+        line: str, cur_vertex: int,
+        operators: list[str], edges: list[tuple[int, int]], depth: list[int], edge_depths: list[int]
+):
     name, info = line.split(";")
     info = info.strip()
     # depth[v] is a length of the longest path from vertex v to any sink in an expression graph
@@ -27,19 +30,22 @@ def process_line(line: str, cur_vertex: int, operators: list[str], edges: list[t
     if get_vertex_type(name) == VertexType.APP:
         operators.append(name)
 
-        children = map(int, info.split(" "))
+        children = list(map(int, info.split(" ")))
+        for u in children:
+            depth[cur_vertex] = max(depth[cur_vertex], depth[u] + 1)
+
         for u in children:
             edges.append((u, cur_vertex))
-            depth[cur_vertex] = max(depth[cur_vertex], depth[u] + 1)
+            edge_depths.append(depth[cur_vertex])
 
     else:
         operators.append(name + ";" + info)
 
 
 def read_graph_from_file(inf: TextIO, max_size: int, max_depth: int)\
-        -> Union[tuple[list[str], list[tuple[int, int]], list[int]], tuple[None, None, None]]:
+        -> Union[tuple[list[str], list[tuple[int, int]], list[int], list[int]], tuple[None, None, None, None]]:
 
-    operators, edges, depth = [], [], []
+    operators, edges, depth, edge_depths = [], [], [], []
 
     cur_vertex = 0
     for line in inf.readlines():
@@ -49,7 +55,7 @@ def read_graph_from_file(inf: TextIO, max_size: int, max_depth: int)\
             continue  # lines starting with ";" are considered to be comments
 
         try:
-            process_line(line, cur_vertex, operators, edges, depth)
+            process_line(line, cur_vertex, operators, edges, depth, edge_depths)
 
         except Exception as e:
             print(e, "\n")
@@ -58,15 +64,15 @@ def read_graph_from_file(inf: TextIO, max_size: int, max_depth: int)\
             raise e
 
         if cur_vertex >= max_size or depth[cur_vertex] > max_depth:
-            return None, None, None
+            return None, None, None, None
 
         cur_vertex += 1
 
-    return operators, edges, depth
+    return operators, edges, depth, edge_depths
 
 
-def read_graph_by_path(path: str, max_size: int, max_depth: int)\
-        -> Union[tuple[list[str], list[tuple[int, int]], list[int]], tuple[None, None, None]]:
+def read_graph_by_path(path: str, max_size: int, max_depth: int) \
+        -> Union[tuple[list[str], list[tuple[int, int]], list[int], list[int]], tuple[None, None, None, None]]:
 
     with open(path, "r") as inf:
         try:

@@ -18,7 +18,10 @@ class Encoder(nn.Module):
         # self.conv = TransformerConv(hidden_dim, hidden_dim, root_weight=True)  # this can't be exported to ONNX
 
     def forward(
-            self, node_labels: torch.Tensor, edges: torch.Tensor, depths: torch.Tensor, root_ptrs: torch.Tensor
+            self,
+            node_labels: torch.Tensor, edges: torch.Tensor,
+            depths: torch.Tensor, edge_depths: torch.Tensor,
+            root_ptrs: torch.Tensor,
     ) -> torch.Tensor:
         """
         encoder forward pass
@@ -36,11 +39,13 @@ class Encoder(nn.Module):
 
         depth = depths.max()
         for i in range(1, depth + 1):
-            mask = (depths == i)
-            new_features = self.conv(node_features, edges)
+            node_mask = (depths == i)
+            edge_mask = (edge_depths == i)
+
+            new_features = self.conv(node_features, edges[:, edge_mask])
 
             node_features = torch.clone(node_features)
-            node_features[mask] = new_features[mask]
+            node_features[node_mask] = new_features[node_mask]
 
         node_features = node_features[root_ptrs[1:] - 1]
 

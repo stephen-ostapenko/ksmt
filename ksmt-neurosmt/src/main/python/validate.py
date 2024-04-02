@@ -32,9 +32,10 @@ if __name__ == "__main__":
     torch.set_float32_matmul_precision("medium")
 
     args = get_args()
+    num_threads = int(os.environ["OMP_NUM_THREADS"])
 
-    val_dl = get_dataloader(args.ds, "val", args.oenc)
-    test_dl = get_dataloader(args.ds, "test", args.oenc)
+    val_dl = get_dataloader(args.ds, args.oenc, "val", num_threads)
+    test_dl = get_dataloader(args.ds, args.oenc, "test", num_threads)
 
     trainer = Trainer()
 

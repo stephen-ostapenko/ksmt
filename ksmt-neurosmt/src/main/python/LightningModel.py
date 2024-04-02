@@ -15,9 +15,9 @@ from Model import Model
 
 
 def unpack_batch(batch):
-    node_labels, edges, depths, root_ptrs = batch.x, batch.edge_index, batch.depth, batch.ptr
+    node_labels, edges, depths, edge_depths, root_ptrs = batch.x, batch.edge_index, batch.depth, batch.edge_depths, batch.ptr
 
-    return node_labels, edges, depths, root_ptrs
+    return node_labels, edges, depths, edge_depths, root_ptrs
 
 
 class LightningModel(pl.LightningModule):

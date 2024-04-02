@@ -27,7 +27,7 @@ def select_paths_with_suitable_samples_and_transform_to_paths_from_root(path_to_
 
     correct_paths = []
     for path in tqdm(paths):
-        operators, edges, _ = read_graph_by_path(path, max_size=MAX_FORMULA_SIZE, max_depth=MAX_FORMULA_DEPTH)
+        operators, edges, _, _ = read_graph_by_path(path, max_size=MAX_FORMULA_SIZE, max_depth=MAX_FORMULA_DEPTH)
 
         if operators is None:
             continue

@@ -13,7 +13,10 @@ class Model(nn.Module):
         self.decoder = Decoder(hidden_dim=hidden_dim)
 
     def forward(
-            self, node_labels: torch.Tensor, edges: torch.Tensor, depths: torch.Tensor, root_ptrs: torch.Tensor
+            self,
+            node_labels: torch.Tensor, edges: torch.Tensor,
+            depths: torch.Tensor, edge_depths: torch.Tensor,
+            root_ptrs: torch.Tensor,
     ) -> torch.Tensor:
         """
         model full forward pass (encoder + decoder)
@@ -27,7 +30,7 @@ class Model(nn.Module):
                 each element is a logit for probability of formula to be SAT
         """
 
-        x = self.encoder(node_labels, edges, depths, root_ptrs)
+        x = self.encoder(node_labels, edges, depths, edge_depths, root_ptrs)
         x = self.decoder(x)
 
         return x
