@@ -8,7 +8,8 @@ import torch.nn.functional as F
 
 import pytorch_lightning as pl
 
-from torchmetrics.classification import BinaryAccuracy, BinaryConfusionMatrix, BinaryAUROC, BinaryPrecisionAtFixedRecall
+from torchmetrics.classification import \
+    BinaryAccuracy, BinaryConfusionMatrix, BinaryAUROC, BinaryAveragePrecision, BinaryPrecisionAtFixedRecall
 
 from GlobalConstants import EMBEDDING_DIM
 from Model import Model
@@ -25,10 +26,11 @@ class LightningModel(pl.LightningModule):
     PyTorch Lightning wrapper for model
     """
 
-    def __init__(self):
+    def __init__(self, learning_rate=None):
         super().__init__()
 
         self.model = Model(hidden_dim=EMBEDDING_DIM)
+        self.learning_rate = learning_rate
 
         self.val_outputs = []
         self.val_targets = []
@@ -38,6 +40,7 @@ class LightningModel(pl.LightningModule):
         self.confusion_matrix = BinaryConfusionMatrix()
 
         self.roc_auc = BinaryAUROC()
+        self.avg_prc = BinaryAveragePrecision()
         self.precisions_at_recall = nn.ModuleList([
             BinaryPrecisionAtFixedRecall(rec) for rec in [0.75, 0.8, 0.85, 0.9, 0.95, 0.975, 0.99, 1.0]
         ])
@@ -48,9 +51,21 @@ class LightningModel(pl.LightningModule):
 
     def configure_optimizers(self):
         params = [p for p in self.model.parameters() if p is not None and p.requires_grad]
-        optimizer = torch.optim.Adam(params, lr=1e-4)
+        optimizer = torch.optim.Adam(params, lr=self.learning_rate)
 
-        return optimizer
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": torch.optim.lr_scheduler.ReduceLROnPlateau(
+                optimizer,
+                mode="min",
+                factor=0.2,
+                patience=7,
+                threshold_mode="abs",
+                min_lr=self.learning_rate * 0.02,
+                verbose=True
+            ),
+            "monitor": "val/loss"
+        }
 
     def training_step(self, train_batch, batch_idx):
         out = self.model(*unpack_batch(train_batch))
@@ -82,6 +97,7 @@ class LightningModel(pl.LightningModule):
         out = F.sigmoid(out)
 
         self.roc_auc.update(out, batch.y)
+        self.avg_prc.update(out, batch.y)
         for precision_at_recall in self.precisions_at_recall:
             precision_at_recall.update(out, batch.y)
 
@@ -123,6 +139,14 @@ class LightningModel(pl.LightningModule):
             sync_dist=True,
         )
         self.roc_auc.reset()
+
+        self.log(
+            f"{target_name}/avg-precision", self.avg_prc.compute(),
+            prog_bar=True, logger=True,
+            on_step=False, on_epoch=True,
+            sync_dist=True,
+        )
+        self.avg_prc.reset()
 
         for precision_at_recall in self.precisions_at_recall:
             precision = precision_at_recall.compute()[0]
