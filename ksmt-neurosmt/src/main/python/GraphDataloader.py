@@ -13,7 +13,7 @@ from torch.utils.data import Dataset
 from torch_geometric.data import Data as Graph
 from torch_geometric.loader import DataLoader
 
-from GlobalConstants import BATCH_SIZE, MAX_FORMULA_SIZE, MAX_FORMULA_DEPTH, METADATA_PATH
+from GlobalConstants import BATCH_SIZE, MAX_FORMULA_SIZE, MAX_FORMULA_DEPTH
 from GraphReader import read_graph_by_path
 
 
@@ -70,8 +70,10 @@ def load_sample(path_to_sample: str):
 
 
 # load all samples from all datasets and return them as a list of tuples
-def load_data(paths_to_datasets: list[str], target: Literal["train", "val", "test"], num_threads: int)\
-        -> list[tuple[list[str], list[tuple[int, int]], int, list[int], list[int]]]:
+def load_data(
+        paths_to_datasets: list[str], target: Literal["train", "val", "test"],
+        metadata_dir: str, num_threads: int
+) -> list[tuple[list[str], list[tuple[int, int]], int, list[int], list[int]]]:
 
     data = []
 
@@ -79,7 +81,7 @@ def load_data(paths_to_datasets: list[str], target: Literal["train", "val", "tes
     for path_to_dataset in paths_to_datasets:
         print(f"loading data from '{path_to_dataset}'")
 
-        with open(os.path.join(path_to_dataset, METADATA_PATH, target), "r") as f:
+        with open(os.path.join(path_to_dataset, metadata_dir, target), "r") as f:
             paths_list = list(f.readlines())
 
             if "SHRINK_DATASET" in os.environ:
@@ -97,13 +99,13 @@ def load_data(paths_to_datasets: list[str], target: Literal["train", "val", "tes
 # load samples from all datasets, transform them and return them in a Dataloader object
 def get_dataloader(
         paths_to_datasets: list[str], path_to_ordinal_encoder: str,
-        target: Literal["train", "val", "test"], num_threads: int, cache_path: str,
+        target: Literal["train", "val", "test"], metadata_dir: str, num_threads: int, cache_path: str,
 ) -> DataLoader:
 
     print(f"creating dataloader for {target}")
 
     print("loading data")
-    data = load_data(paths_to_datasets, target, num_threads)
+    data = load_data(paths_to_datasets, target, metadata_dir, num_threads)
 
     print(f"stats: {len(data)} overall; sat fraction is {sum(it[2] for it in data) / len(data)}")
 

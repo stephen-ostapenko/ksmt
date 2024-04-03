@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import os; os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"; os.environ["CUDA_VISIBLE_DEVICES"] = os.environ["GPU"]
+import os
 from argparse import ArgumentParser
 
 import torch
@@ -14,6 +14,7 @@ from LightningModel import LightningModel
 def get_args():
     parser = ArgumentParser(description="validation script")
     parser.add_argument("--ds", required=True, nargs="+")
+    parser.add_argument("--metadata", required=True)
     parser.add_argument("--oenc", required=True)
     parser.add_argument("--ckpt", required=True)
 
@@ -34,8 +35,16 @@ if __name__ == "__main__":
     args = get_args()
     num_threads = int(os.environ["OMP_NUM_THREADS"])
 
-    val_dl = get_dataloader(args.ds, args.oenc, "val", num_threads)
-    test_dl = get_dataloader(args.ds, args.oenc, "test", num_threads)
+    val_dl = get_dataloader(
+        args.ds, args.oenc,
+        target="val", metadata_dir=args.metadata,
+        num_threads=num_threads, cache_path="./cache"
+    )
+    test_dl = get_dataloader(
+        args.ds, args.oenc,
+        target="test", metadata_dir=args.metadata,
+        num_threads=num_threads, cache_path="./cache"
+    )
 
     trainer = Trainer()
 

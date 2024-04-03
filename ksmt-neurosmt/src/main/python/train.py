@@ -17,6 +17,7 @@ def get_args():
     parser = ArgumentParser(description="main training script")
     parser.add_argument("--name", required=True)
     parser.add_argument("--ds", required=True, nargs="+")
+    parser.add_argument("--metadata", required=True)
     parser.add_argument("--oenc", required=True)
     parser.add_argument("--epochs", required=False, type=int)
     parser.add_argument("--lr", required=False, type=float)
@@ -41,8 +42,16 @@ if __name__ == "__main__":
 
     args = get_args()
 
-    train_dl = get_dataloader(args.ds, args.oenc, "train", num_threads, cache_path="./cache")
-    val_dl = get_dataloader(args.ds, args.oenc, "val", num_threads, cache_path="./cache")
+    train_dl = get_dataloader(
+        args.ds, args.oenc,
+        target="train", metadata_dir=args.metadata,
+        num_threads=num_threads, cache_path="./cache"
+    )
+    val_dl = get_dataloader(
+        args.ds, args.oenc,
+        target="val", metadata_dir=args.metadata,
+        num_threads=num_threads, cache_path="./cache"
+    )
 
     pl_model = LightningModel(learning_rate=args.lr)
     trainer = Trainer(

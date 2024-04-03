@@ -8,15 +8,18 @@ from tqdm import trange
 
 from pytorch_lightning import seed_everything
 
-from GlobalConstants import METADATA_PATH
 from utils import train_val_test_indices, align_sat_unsat_sizes, select_paths_with_suitable_samples_and_transform_to_paths_from_root
 
 
-def classic_random_split(path_to_dataset_root, val_qty, test_qty, align_train_mode, align_val_mode, align_test_mode):
+def classic_random_split(
+        path_to_dataset_root, metadata_dir,
+        val_qty, test_qty,
+        align_train_mode, align_val_mode, align_test_mode
+):
     sat_paths, unsat_paths = [], []
     for root, dirs, files in os.walk(path_to_dataset_root, topdown=True):
-        if METADATA_PATH in dirs:
-            dirs.remove(METADATA_PATH)
+        if metadata_dir in dirs:
+            dirs.remove(metadata_dir)
 
         for file_name in files:
             cur_path = os.path.join(root, file_name)
@@ -54,11 +57,15 @@ def classic_random_split(path_to_dataset_root, val_qty, test_qty, align_train_mo
     return train_data, val_data, test_data
 
 
-def grouped_random_split(path_to_dataset_root, val_qty, test_qty, align_train_mode, align_val_mode, align_test_mode):
+def grouped_random_split(
+        path_to_dataset_root, metadata_dir,
+        val_qty, test_qty,
+        align_train_mode, align_val_mode, align_test_mode
+):
     def get_all_paths(path_to_dataset_root):
         res = []
         for group_name in os.listdir(path_to_dataset_root):
-            if group_name.startswith(METADATA_PATH):
+            if group_name.startswith(metadata_dir):
                 continue
 
             for sample_path in os.listdir(os.path.join(path_to_dataset_root, group_name)):
@@ -160,17 +167,22 @@ def grouped_random_split(path_to_dataset_root, val_qty, test_qty, align_train_mo
     return train_data, val_data, test_data
 
 
-def create_split(path_to_dataset_root, val_qty, test_qty, align_train_mode, align_val_mode, align_test_mode, grouped):
+def create_split(
+        path_to_dataset_root, metadata_dir,
+        val_qty, test_qty,
+        align_train_mode, align_val_mode, align_test_mode,
+        grouped
+):
     if grouped:
         train_data, val_data, test_data = grouped_random_split(
-            path_to_dataset_root,
+            path_to_dataset_root, metadata_dir,
             val_qty, test_qty,
             align_train_mode, align_val_mode, align_test_mode
         )
 
     else:
         train_data, val_data, test_data = classic_random_split(
-            path_to_dataset_root,
+            path_to_dataset_root, metadata_dir,
             val_qty, test_qty,
             align_train_mode, align_val_mode, align_test_mode
         )
@@ -181,7 +193,7 @@ def create_split(path_to_dataset_root, val_qty, test_qty, align_train_mode, alig
     print(f"test:  {len(test_data)}")
     print(flush=True)
 
-    meta_path = os.path.join(path_to_dataset_root, METADATA_PATH)
+    meta_path = os.path.join(path_to_dataset_root, metadata_dir)
     os.makedirs(meta_path, exist_ok=True)
 
     with open(os.path.join(meta_path, "train"), "w") as f:
@@ -207,6 +219,7 @@ def get_args():
     parser = ArgumentParser(description="train/val/test splitting script")
 
     parser.add_argument("--ds", required=True)
+    parser.add_argument("--metadata", required=True)
 
     parser.add_argument("--val_qty", type=float, default=0.15)
     parser.add_argument("--test_qty", type=float, default=0.1)
@@ -233,7 +246,7 @@ if __name__ == "__main__":
     args = get_args()
 
     create_split(
-        args.ds,
+        args.ds, args.metadata,
         args.val_qty, args.test_qty,
         args.align_train, args.align_val, args.align_test,
         args.grouped

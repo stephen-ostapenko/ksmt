@@ -6,17 +6,15 @@ from typing import Literal
 
 from tqdm import tqdm
 
-from GlobalConstants import METADATA_PATH
 
-
-def get_groups_set(paths_to_datasets: list[str], target: Literal["train", "val", "test"]) -> set:
+def get_groups_set(paths_to_datasets: list[str], target: Literal["train", "val", "test"], metadata_dir: str) -> set:
     groups = set()
 
     print(f"loading {target}")
     for path_to_dataset in paths_to_datasets:
         print(f"loading data from '{path_to_dataset}'")
 
-        with open(os.path.join(path_to_dataset, METADATA_PATH, target), "r") as f:
+        with open(os.path.join(path_to_dataset, metadata_dir, target), "r") as f:
             for path_to_sample in tqdm(list(f.readlines())):
                 path_to_sample = path_to_sample.strip()
                 path_to_parent = os.path.dirname(path_to_sample)
@@ -29,6 +27,7 @@ def get_groups_set(paths_to_datasets: list[str], target: Literal["train", "val",
 def get_args():
     parser = ArgumentParser(description="validation script")
     parser.add_argument("--ds", required=True, nargs="+")
+    parser.add_argument("--metadata", required=True)
 
     args = parser.parse_args()
     print("args:")
@@ -43,9 +42,9 @@ def get_args():
 if __name__ == "__main__":
     args = get_args()
 
-    train_groups = get_groups_set(args.ds, "train")
-    val_groups = get_groups_set(args.ds, "val")
-    test_groups = get_groups_set(args.ds, "test")
+    train_groups = get_groups_set(args.ds, "train", args.metadata)
+    val_groups = get_groups_set(args.ds, "val", args.metadata)
+    test_groups = get_groups_set(args.ds, "test", args.metadata)
 
     assert train_groups.isdisjoint(val_groups)
     assert val_groups.isdisjoint(test_groups)
