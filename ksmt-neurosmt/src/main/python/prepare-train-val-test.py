@@ -12,10 +12,11 @@ from utils import train_val_test_indices, align_sat_unsat_sizes, select_paths_wi
 
 
 def classic_random_split(
-        path_to_dataset_root, metadata_dir,
+        path_to_dataset,
         val_qty, test_qty,
         align_train_mode, align_val_mode, align_test_mode
 ):
+    path_to_dataset_root, metadata_dir = path_to_dataset.strip().split(":")
     sat_paths, unsat_paths = [], []
     for root, dirs, files in os.walk(path_to_dataset_root, topdown=True):
         if metadata_dir in dirs:
@@ -58,11 +59,13 @@ def classic_random_split(
 
 
 def grouped_random_split(
-        path_to_dataset_root, metadata_dir,
+        path_to_dataset,
         val_qty, test_qty,
         align_train_mode, align_val_mode, align_test_mode
 ):
-    def get_all_paths(path_to_dataset_root):
+    path_to_dataset_root, metadata_dir = path_to_dataset.strip().split(":")
+
+    def get_all_paths(path_to_dataset_root, metadata_dir):
         res = []
         for group_name in os.listdir(path_to_dataset_root):
             if group_name.startswith(metadata_dir):
@@ -73,7 +76,7 @@ def grouped_random_split(
 
         return res
 
-    paths = get_all_paths(path_to_dataset_root)
+    paths = get_all_paths(path_to_dataset_root, metadata_dir)
 
     def calc_group_weights(list_of_suitable_samples):
         groups = dict()
@@ -168,21 +171,23 @@ def grouped_random_split(
 
 
 def create_split(
-        path_to_dataset_root, metadata_dir,
+        path_to_dataset,
         val_qty, test_qty,
         align_train_mode, align_val_mode, align_test_mode,
         grouped
 ):
+    path_to_dataset_root, metadata_dir = path_to_dataset.strip().split(":")
+
     if grouped:
         train_data, val_data, test_data = grouped_random_split(
-            path_to_dataset_root, metadata_dir,
+            path_to_dataset,
             val_qty, test_qty,
             align_train_mode, align_val_mode, align_test_mode
         )
 
     else:
         train_data, val_data, test_data = classic_random_split(
-            path_to_dataset_root, metadata_dir,
+            path_to_dataset,
             val_qty, test_qty,
             align_train_mode, align_val_mode, align_test_mode
         )
@@ -219,7 +224,6 @@ def get_args():
     parser = ArgumentParser(description="train/val/test splitting script")
 
     parser.add_argument("--ds", required=True)
-    parser.add_argument("--metadata", required=True)
 
     parser.add_argument("--val_qty", type=float, default=0.15)
     parser.add_argument("--test_qty", type=float, default=0.1)
@@ -246,7 +250,7 @@ if __name__ == "__main__":
     args = get_args()
 
     create_split(
-        args.ds, args.metadata,
+        args.ds,
         args.val_qty, args.test_qty,
         args.align_train, args.align_val, args.align_test,
         args.grouped

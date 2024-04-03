@@ -16,7 +16,6 @@ def get_args():
     parser = ArgumentParser(description="main training script")
     parser.add_argument("--name", required=True)
     parser.add_argument("--ds", required=True, nargs="+")
-    parser.add_argument("--metadata", required=True)
     parser.add_argument("--oenc", required=True)
     parser.add_argument("--epochs", required=False, type=int)
     parser.add_argument("--lr", required=False, type=float)
@@ -44,12 +43,12 @@ if __name__ == "__main__":
 
     train_dl = get_dataloader(
         args.ds, args.oenc, target="train",
-        metadata_dir=args.metadata, cache_path="./cache", batch_size=args.batch_size,
+        cache_path="./cache", batch_size=args.batch_size,
         num_threads=num_threads
     )
     val_dl = get_dataloader(
         args.ds, args.oenc, target="val",
-        metadata_dir=args.metadata, cache_path="./cache", batch_size=args.batch_size,
+        cache_path="./cache", batch_size=args.batch_size,
         num_threads=num_threads
     )
 

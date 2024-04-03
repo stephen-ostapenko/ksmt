@@ -14,7 +14,6 @@ from LightningModel import LightningModel
 def get_args():
     parser = ArgumentParser(description="validation script")
     parser.add_argument("--ds", required=True, nargs="+")
-    parser.add_argument("--metadata", required=True)
     parser.add_argument("--oenc", required=True)
     parser.add_argument("--batch_size", required=False, type=int, default=16)
     parser.add_argument("--ckpt", required=True)
@@ -38,12 +37,12 @@ if __name__ == "__main__":
 
     val_dl = get_dataloader(
         args.ds, args.oenc, target="val",
-        metadata_dir=args.metadata, cache_path="./cache", batch_size=args.batch_size,
+        cache_path="./cache", batch_size=args.batch_size,
         num_threads=num_threads
     )
     test_dl = get_dataloader(
         args.ds, args.oenc, target="test",
-        metadata_dir=args.metadata, cache_path="./cache", batch_size=args.batch_size,
+        cache_path="./cache", batch_size=args.batch_size,
         num_threads=num_threads
     )
 
