@@ -105,6 +105,27 @@ def get_dataloader(
 
     print(f"creating dataloader for {target}")
 
+    ds_dump_path = f"{target}_{'-'.join(paths_to_datasets).replace('/', '+')}"
+    ds_dump_path = f"{ds_dump_path}_{path_to_ordinal_encoder.replace('/', '+')}"
+    if "SHRINK_DATASET" in os.environ:
+        ds_dump_path = f"{os.environ['SHRINK_DATASET']}_{ds_dump_path}"
+
+    ds_dump_path = os.path.join(cache_path, ds_dump_path)
+
+    if os.path.exists(ds_dump_path):
+        print("cache hit!", flush=True)
+        ds = torch.load(ds_dump_path)
+
+        print("constructing dataloader\n", flush=True)
+        return DataLoader(
+            ds.graphs,
+            batch_size=batch_size, num_workers=num_threads,
+            shuffle=(target == "train"), drop_last=(target == "train")
+        )
+
+    else:
+        print("cache miss!", flush=True)
+
     print("loading data")
     data = load_data(paths_to_datasets, target, num_threads)
 
@@ -122,25 +143,11 @@ def get_dataloader(
         return nodes, edges, label, depths, edge_depths
 
     print("transforming & creating dataset")
-    ds_dump_path = f"{target}_{'-'.join(paths_to_datasets).replace('/', '+')}"
-    ds_dump_path = f"{ds_dump_path}_{path_to_ordinal_encoder.replace('/', '+')}"
-    if "SHRINK_DATASET" in os.environ:
-        ds_dump_path = f"{os.environ['SHRINK_DATASET']}_{ds_dump_path}"
+    parallel = Parallel(n_jobs=num_threads, return_as="generator")
+    data = list(parallel(delayed(transform)(data_i) for data_i in data))
 
-    ds_dump_path = os.path.join(cache_path, ds_dump_path)
-
-    if os.path.exists(ds_dump_path):
-        print("cache hit!")
-        ds = torch.load(ds_dump_path)
-
-    else:
-        print("cache miss!")
-        parallel = Parallel(n_jobs=num_threads, return_as="generator")
-        data = list(parallel(delayed(transform)(data_i) for data_i in data))
-
-        ds = GraphDataset(data, num_threads)
-
-        torch.save(ds, ds_dump_path)
+    ds = GraphDataset(data, num_threads)
+    torch.save(ds, ds_dump_path)
 
     print("constructing dataloader\n", flush=True)
     return DataLoader(
