@@ -13,7 +13,7 @@ from torch.utils.data import Dataset
 from torch_geometric.data import Data as Graph
 from torch_geometric.loader import DataLoader
 
-from GlobalConstants import BATCH_SIZE, MAX_FORMULA_SIZE, MAX_FORMULA_DEPTH
+from GlobalConstants import MAX_FORMULA_SIZE, MAX_FORMULA_DEPTH
 from GraphReader import read_graph_by_path
 
 
@@ -98,8 +98,9 @@ def load_data(
 
 # load samples from all datasets, transform them and return them in a Dataloader object
 def get_dataloader(
-        paths_to_datasets: list[str], path_to_ordinal_encoder: str,
-        target: Literal["train", "val", "test"], metadata_dir: str, num_threads: int, cache_path: str,
+        paths_to_datasets: list[str], path_to_ordinal_encoder: str, target: Literal["train", "val", "test"],
+        metadata_dir: str, cache_path: str, batch_size: int,
+        num_threads: int
 ) -> DataLoader:
 
     print(f"creating dataloader for {target}")
@@ -144,6 +145,6 @@ def get_dataloader(
     print("constructing dataloader\n", flush=True)
     return DataLoader(
         ds.graphs,
-        batch_size=BATCH_SIZE, num_workers=num_threads,
+        batch_size=batch_size, num_workers=num_threads,
         shuffle=(target == "train"), drop_last=(target == "train")
     )

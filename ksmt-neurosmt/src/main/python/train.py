@@ -8,7 +8,6 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 
-from GlobalConstants import BATCH_SIZE
 from GraphDataloader import get_dataloader
 from LightningModel import LightningModel
 
@@ -21,6 +20,7 @@ def get_args():
     parser.add_argument("--oenc", required=True)
     parser.add_argument("--epochs", required=False, type=int)
     parser.add_argument("--lr", required=False, type=float)
+    parser.add_argument("--batch_size", required=True, type=int)
     parser.add_argument("--ckpt", required=False)
 
     args = parser.parse_args()
@@ -43,14 +43,14 @@ if __name__ == "__main__":
     args = get_args()
 
     train_dl = get_dataloader(
-        args.ds, args.oenc,
-        target="train", metadata_dir=args.metadata,
-        num_threads=num_threads, cache_path="./cache"
+        args.ds, args.oenc, target="train",
+        metadata_dir=args.metadata, cache_path="./cache", batch_size=args.batch_size,
+        num_threads=num_threads
     )
     val_dl = get_dataloader(
-        args.ds, args.oenc,
-        target="val", metadata_dir=args.metadata,
-        num_threads=num_threads, cache_path="./cache"
+        args.ds, args.oenc, target="val",
+        metadata_dir=args.metadata, cache_path="./cache", batch_size=args.batch_size,
+        num_threads=num_threads
     )
 
     pl_model = LightningModel(learning_rate=args.lr)
@@ -68,7 +68,7 @@ if __name__ == "__main__":
         )],
         max_epochs=args.epochs,
         log_every_n_steps=1,
-        accumulate_grad_batches=max(1, 64 // BATCH_SIZE),
+        accumulate_grad_batches=max(1, 64 // args.batch_size),
         gradient_clip_val=10,
         enable_checkpointing=True,
         barebones=False,
