@@ -8,6 +8,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 
+from GlobalConstants import BATCH_SIZE
 from GraphDataloader import get_dataloader
 from LightningModel import LightningModel
 
@@ -35,11 +36,13 @@ if __name__ == "__main__":
     # enable usage of nvidia's TensorFloat if available
     torch.set_float32_matmul_precision("medium")
 
-    args = get_args()
-    num_threads = int(os.environ["OMP_NUM_THREADS"])
+    num_threads = int(os.environ["NUM_THREADS"])
+    print("NUM_THREADS =", num_threads)
 
-    train_dl = get_dataloader(args.ds, args.oenc, "train", num_threads)
-    val_dl = get_dataloader(args.ds, args.oenc, "val", num_threads)
+    args = get_args()
+
+    train_dl = get_dataloader(args.ds, args.oenc, "train", num_threads, cache_path="./cache")
+    val_dl = get_dataloader(args.ds, args.oenc, "val", num_threads, cache_path="./cache")
 
     pl_model = LightningModel(learning_rate=args.lr)
     trainer = Trainer(
@@ -56,6 +59,8 @@ if __name__ == "__main__":
         )],
         max_epochs=args.epochs,
         log_every_n_steps=1,
+        accumulate_grad_batches=max(1, 64 // BATCH_SIZE),
+        gradient_clip_val=10,
         enable_checkpointing=True,
         barebones=False,
         default_root_dir="."

@@ -1,10 +1,10 @@
 import os
+import joblib
+from joblib import Parallel, delayed
 from multiprocessing import Pool
 from typing import Literal
 
 import numpy as np
-import joblib
-from fast_map import fast_map
 from tqdm import tqdm
 
 import torch
@@ -13,8 +13,11 @@ from torch.utils.data import Dataset
 from torch_geometric.data import Data as Graph
 from torch_geometric.loader import DataLoader
 
-from GlobalConstants import BATCH_SIZE, MAX_FORMULA_SIZE, MAX_FORMULA_DEPTH, NUM_WORKERS, METADATA_PATH
+from GlobalConstants import BATCH_SIZE, MAX_FORMULA_SIZE, MAX_FORMULA_DEPTH, METADATA_PATH
 from GraphReader import read_graph_by_path
+
+
+joblib.externals.loky.process_executor._MAX_MEMORY_LEAK_SIZE = int(3e10)
 
 
 # create a torch_geometric graph
@@ -32,8 +35,9 @@ def create_graph(data):
 
 # torch Dataset
 class GraphDataset(Dataset):
-    def __init__(self, graph_data):
-        self.graphs = list(map(create_graph, graph_data))
+    def __init__(self, graph_data, num_threads=1):
+        parallel = Parallel(n_jobs=num_threads, return_as="generator")
+        self.graphs = list(parallel(delayed(create_graph)(gd) for gd in graph_data))
 
     def __len__(self):
         return len(self.graphs)
@@ -93,7 +97,7 @@ def load_data(paths_to_datasets: list[str], target: Literal["train", "val", "tes
 # load samples from all datasets, transform them and return them in a Dataloader object
 def get_dataloader(
         paths_to_datasets: list[str], path_to_ordinal_encoder: str,
-        target: Literal["train", "val", "test"], num_threads: int,
+        target: Literal["train", "val", "test"], num_threads: int, cache_path: str,
 ) -> DataLoader:
 
     print(f"creating dataloader for {target}")
@@ -114,15 +118,30 @@ def get_dataloader(
 
         return nodes, edges, label, depths, edge_depths
 
-    print("transforming")
-    data = fast_map(transform, data, threads_limit=num_threads)
+    print("transforming & creating dataset")
+    ds_dump_path = f"{target}_{'-'.join(paths_to_datasets).replace('/', '+')}"
+    ds_dump_path = f"{ds_dump_path}_{path_to_ordinal_encoder.replace('/', '+')}"
+    if "SHRINK_DATASET" in os.environ:
+        ds_dump_path = f"{os.environ['SHRINK_DATASET']}_{ds_dump_path}"
 
-    print("creating dataset")
-    ds = GraphDataset(data)
+    ds_dump_path = os.path.join(cache_path, ds_dump_path)
+
+    if os.path.exists(ds_dump_path):
+        print("cache hit!")
+        ds = torch.load(ds_dump_path)
+
+    else:
+        print("cache miss!")
+        parallel = Parallel(n_jobs=num_threads, return_as="generator")
+        data = list(parallel(delayed(transform)(data_i) for data_i in data))
+
+        ds = GraphDataset(data, num_threads)
+
+        torch.save(ds, ds_dump_path)
 
     print("constructing dataloader\n", flush=True)
     return DataLoader(
         ds.graphs,
-        batch_size=BATCH_SIZE, num_workers=NUM_WORKERS,
+        batch_size=BATCH_SIZE, num_workers=num_threads,
         shuffle=(target == "train"), drop_last=(target == "train")
     )

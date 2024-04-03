@@ -29,6 +29,7 @@ class Encoder(nn.Module):
         :param node_labels: torch.Tensor of shape [number of nodes in batch, 1] (dtype=int32)
         :param edges: torch.Tensor of shape [2, number of edges in batch] (dtype=int64)
         :param depths: torch.Tensor of shape [number of nodes in batch] (dtype=int32)
+        :param edge_depths: torch.Tensor of shape [number of edges in batch] (dtype=int32)
         :param root_ptrs: torch.Tensor of shape [batch size + 1] (dtype=int32) --
                 pointers to root of graph for each expression
         :return: torch.Tensor of shape [batch size, hidden dimension size] (dtype=float) --
@@ -39,13 +40,11 @@ class Encoder(nn.Module):
 
         depth = depths.max()
         for i in range(1, depth + 1):
-            node_mask = (depths == i)
-            edge_mask = (edge_depths == i)
+            node_mask: torch.Tensor = (depths == i)
+            edge_mask: torch.Tensor = (edge_depths == i)
 
             new_features = self.conv(node_features, edges[:, edge_mask])
-
-            node_features = torch.clone(node_features)
-            node_features[node_mask] = new_features[node_mask]
+            node_features = torch.where(node_mask.reshape(-1, 1), new_features, node_features)
 
         node_features = node_features[root_ptrs[1:] - 1]
 

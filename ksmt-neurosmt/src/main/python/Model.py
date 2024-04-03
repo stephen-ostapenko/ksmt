@@ -24,6 +24,7 @@ class Model(nn.Module):
         :param node_labels: torch.Tensor of shape [number of nodes in batch, 1] (dtype=int32)
         :param edges: torch.Tensor of shape [2, number of edges in batch] (dtype=int64)
         :param depths: torch.Tensor of shape [number of nodes in batch] (dtype=int32)
+        :param edge_depths: torch.Tensor of shape [number of edges in batch] (dtype=int32)
         :param root_ptrs: torch.Tensor of shape [batch size + 1] (dtype=int32) --
                 pointers to root of graph for each expression
         :return: torch.Tensor of shape [batch size, 1] (dtype=float) --
