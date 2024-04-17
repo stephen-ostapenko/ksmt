@@ -23,7 +23,7 @@ def classic_random_split(
             dirs.remove(metadata_dir)
 
         for file_name in files:
-            cur_path = os.path.join(root, file_name)
+            cur_path = str(os.path.join(root, file_name))
 
             if cur_path.endswith("-sat"):
                 sat_paths.append(cur_path)
@@ -65,10 +65,10 @@ def grouped_random_split(
 ):
     path_to_dataset_root, metadata_dir = path_to_dataset.strip().split(":")
 
-    def get_all_paths(path_to_dataset_root, metadata_dir):
+    def get_all_paths(path_to_dataset_root):
         res = []
         for group_name in os.listdir(path_to_dataset_root):
-            if group_name.startswith(metadata_dir):
+            if group_name.startswith("__"):
                 continue
 
             for sample_path in os.listdir(os.path.join(path_to_dataset_root, group_name)):
@@ -76,7 +76,7 @@ def grouped_random_split(
 
         return res
 
-    paths = get_all_paths(path_to_dataset_root, metadata_dir)
+    paths = get_all_paths(path_to_dataset_root)
 
     def calc_group_weights(list_of_suitable_samples):
         groups = dict()
@@ -198,7 +198,7 @@ def create_split(
     print(f"test:  {len(test_data)}")
     print(flush=True)
 
-    meta_path = os.path.join(path_to_dataset_root, metadata_dir)
+    meta_path = str(os.path.join(path_to_dataset_root, metadata_dir))
     os.makedirs(meta_path, exist_ok=True)
 
     with open(os.path.join(meta_path, "train"), "w") as f:

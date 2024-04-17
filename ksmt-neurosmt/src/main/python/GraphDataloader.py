@@ -90,7 +90,11 @@ def load_data(
             paths_list = map(lambda path: os.path.join(path_to_dataset_root, path.strip()), paths_list)
 
             with Pool(processes=num_threads) as pool:
-                for operators, edges, label, depths, edge_depths in tqdm(pool.imap_unordered(load_sample, paths_list)):
+                for sample in tqdm(pool.imap_unordered(load_sample, paths_list)):
+                    if sample is None:
+                        continue
+
+                    operators, edges, label, depths, edge_depths = sample
                     data.append((operators, edges, label, depths, edge_depths))
 
     return data
@@ -153,5 +157,6 @@ def get_dataloader(
     return DataLoader(
         ds.graphs,
         batch_size=batch_size, num_workers=num_threads,
-        shuffle=(target == "train"), drop_last=(target == "train")
+        shuffle=(target == "train"), drop_last=(target == "train"),
+        worker_init_fn=lambda _: torch.multiprocessing.set_sharing_strategy("file_system")
     )
