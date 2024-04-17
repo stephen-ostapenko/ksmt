@@ -12,14 +12,13 @@ from utils import train_val_test_indices, align_sat_unsat_sizes, select_paths_wi
 
 
 def classic_random_split(
-        path_to_dataset,
+        path_to_dataset_root,
         val_qty, test_qty,
         align_train_mode, align_val_mode, align_test_mode
 ):
-    path_to_dataset_root, metadata_dir = path_to_dataset.strip().split(":")
     sat_paths, unsat_paths = [], []
     for root, dirs, files in os.walk(path_to_dataset_root, topdown=True):
-        if metadata_dir in dirs:
+        for metadata_dir in filter(lambda d: d.startswith("__"), dirs):
             dirs.remove(metadata_dir)
 
         for file_name in files:
@@ -59,12 +58,10 @@ def classic_random_split(
 
 
 def grouped_random_split(
-        path_to_dataset,
+        path_to_dataset_root,
         val_qty, test_qty,
         align_train_mode, align_val_mode, align_test_mode
 ):
-    path_to_dataset_root, metadata_dir = path_to_dataset.strip().split(":")
-
     def get_all_paths(path_to_dataset_root):
         res = []
         for group_name in os.listdir(path_to_dataset_root):
@@ -180,14 +177,14 @@ def create_split(
 
     if grouped:
         train_data, val_data, test_data = grouped_random_split(
-            path_to_dataset,
+            path_to_dataset_root,
             val_qty, test_qty,
             align_train_mode, align_val_mode, align_test_mode
         )
 
     else:
         train_data, val_data, test_data = classic_random_split(
-            path_to_dataset,
+            path_to_dataset_root,
             val_qty, test_qty,
             align_train_mode, align_val_mode, align_test_mode
         )
