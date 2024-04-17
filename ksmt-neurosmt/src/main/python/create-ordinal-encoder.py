@@ -13,7 +13,7 @@ from GraphDataloader import load_data
 
 
 def create_ordinal_encoder(paths_to_datasets: list[str], path_to_ordinal_encoder: str):
-    data = load_data(paths_to_datasets, "train", 16)
+    data = load_data(paths_to_datasets, ["train"], 16)
 
     encoder = OrdinalEncoder(
         dtype=int,

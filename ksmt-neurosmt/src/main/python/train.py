@@ -42,14 +42,14 @@ if __name__ == "__main__":
     args = get_args()
 
     train_dl = get_dataloader(
-        args.ds, args.oenc, target="train",
-        cache_path="./cache", batch_size=args.batch_size,
-        num_threads=num_threads
+        args.ds, args.oenc, targets="train",
+        cache_path="./cache", batch_size=args.batch_size, num_threads=num_threads,
+        shuffle=True, drop_last=True
     )
     val_dl = get_dataloader(
-        args.ds, args.oenc, target="val",
-        cache_path="./cache", batch_size=args.batch_size,
-        num_threads=num_threads
+        args.ds, args.oenc, targets="val",
+        cache_path="./cache", batch_size=args.batch_size, num_threads=num_threads,
+        shuffle=False, drop_last=False
     )
 
     pl_model = LightningModel(learning_rate=args.lr)

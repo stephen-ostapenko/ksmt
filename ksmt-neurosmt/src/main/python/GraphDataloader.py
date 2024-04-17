@@ -2,7 +2,7 @@ import os
 import joblib
 from joblib import Parallel, delayed
 from multiprocessing import Pool
-from typing import Literal
+from typing import Literal, Union
 
 import numpy as np
 from tqdm import tqdm
@@ -71,45 +71,53 @@ def load_sample(path_to_sample: str):
 
 # load all samples from all datasets and return them as a list of tuples
 def load_data(
-        paths_to_datasets: list[str], target: Literal["train", "val", "test"], num_threads: int
+        paths_to_datasets: list[str],
+        targets: list[Literal["train", "val", "test"]],
+        num_threads: int
 ) -> list[tuple[list[str], list[tuple[int, int]], int, list[int], list[int]]]:
 
     data = []
 
-    print(f"loading {target}")
-    for path_to_dataset in paths_to_datasets:
-        print(f"loading data from '{path_to_dataset}'")
-        path_to_dataset_root, metadata_dir = path_to_dataset.strip().split(":")
+    for target in targets:
+        print(f"loading {target}")
 
-        with open(os.path.join(path_to_dataset_root, metadata_dir, target), "r") as f:
-            paths_list = list(f.readlines())
+        for path_to_dataset in paths_to_datasets:
+            print(f"loading data from '{path_to_dataset}'")
+            path_to_dataset_root, metadata_dir = path_to_dataset.strip().split(":")
 
-            if "SHRINK_DATASET" in os.environ:
-                paths_list = paths_list[:int(os.environ["SHRINK_DATASET"])]
+            with open(os.path.join(path_to_dataset_root, metadata_dir, target), "r") as f:
+                paths_list = list(f.readlines())
 
-            paths_list = map(lambda path: os.path.join(path_to_dataset_root, path.strip()), paths_list)
+                if "SHRINK_DATASET" in os.environ:
+                    paths_list = paths_list[:int(os.environ["SHRINK_DATASET"])]
 
-            with Pool(processes=num_threads) as pool:
-                for sample in tqdm(pool.imap_unordered(load_sample, paths_list)):
-                    if sample is None:
-                        continue
+                paths_list = map(lambda path: os.path.join(path_to_dataset_root, path.strip()), paths_list)
 
-                    operators, edges, label, depths, edge_depths = sample
-                    data.append((operators, edges, label, depths, edge_depths))
+                with Pool(processes=num_threads) as pool:
+                    for sample in tqdm(pool.imap_unordered(load_sample, paths_list)):
+                        if sample is None:
+                            continue
+
+                        operators, edges, label, depths, edge_depths = sample
+                        data.append((operators, edges, label, depths, edge_depths))
 
     return data
 
 
 # load samples from all datasets, transform them and return them in a Dataloader object
 def get_dataloader(
-        paths_to_datasets: list[str], path_to_ordinal_encoder: str, target: Literal["train", "val", "test"],
-        cache_path: str, batch_size: int,
-        num_threads: int
+        paths_to_datasets: list[str], path_to_ordinal_encoder: str,
+        targets: Union[Literal["train", "val", "test"], list[Literal["train", "val", "test"]]],
+        cache_path: str, batch_size: int, num_threads: int,
+        shuffle: bool, drop_last: bool
 ) -> DataLoader:
 
-    print(f"creating dataloader for {target}")
+    if isinstance(targets, str):
+        targets = [targets]
 
-    ds_dump_path = f"{target}_{'-'.join(paths_to_datasets).replace('/', '+')}"
+    print(f"creating dataloader for {targets}")
+
+    ds_dump_path = f"{'-'.join(targets)}_{'-'.join(paths_to_datasets).replace('/', '+')}"
     ds_dump_path = f"{ds_dump_path}_{path_to_ordinal_encoder.replace('/', '+')}"
     if "SHRINK_DATASET" in os.environ:
         ds_dump_path = f"{os.environ['SHRINK_DATASET']}_{ds_dump_path}"
@@ -124,14 +132,15 @@ def get_dataloader(
         return DataLoader(
             ds.graphs,
             batch_size=batch_size, num_workers=num_threads,
-            shuffle=(target == "train"), drop_last=(target == "train")
+            shuffle=shuffle, drop_last=drop_last,
+            worker_init_fn=lambda _: torch.multiprocessing.set_sharing_strategy("file_system")
         )
 
     else:
         print("cache miss!", flush=True)
 
     print("loading data")
-    data = load_data(paths_to_datasets, target, num_threads)
+    data = load_data(paths_to_datasets, targets, num_threads)
 
     print(f"stats: {len(data)} overall; sat fraction is {sum(it[2] for it in data) / len(data)}")
 
@@ -157,6 +166,6 @@ def get_dataloader(
     return DataLoader(
         ds.graphs,
         batch_size=batch_size, num_workers=num_threads,
-        shuffle=(target == "train"), drop_last=(target == "train"),
+        shuffle=shuffle, drop_last=drop_last,
         worker_init_fn=lambda _: torch.multiprocessing.set_sharing_strategy("file_system")
     )
