@@ -27,7 +27,10 @@ fun main(args: Array<String>) {
     val graphOutput = args[3] == "graph"
     val simplify = args.getOrNull(4) == "simplify"
 
-    val files = Files.walk(Path.of(inputRoot)).filter { it.isRegularFile() }
+    val files = Files.walk(Path.of(inputRoot))
+        .filter { it.isRegularFile() }
+        .toList().toMutableList()
+    files.shuffle()
 
     File(outputRoot).mkdirs()
 
@@ -43,7 +46,7 @@ fun main(args: Array<String>) {
     )
 
     var curIdx = 0
-    ProgressBar.wrap(files.toList(), "converting ksmt binary files").forEach {
+    ProgressBar.wrap(files, "converting ksmt binary files").forEach {
         val assertList = try {
             deserialize(ctx, FileInputStream(it.toFile()))
         } catch (e: Exception) {

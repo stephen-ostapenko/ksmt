@@ -26,7 +26,10 @@ fun main(args: Array<String>) {
     val graphOutput = args[2] == "graph"
     val simplify = args.getOrNull(3) == "simplify"
 
-    val files = Files.walk(Path.of(inputRoot)).filter { it.isRegularFile() }
+    val files = Files.walk(Path.of(inputRoot))
+        .filter { it.isRegularFile() }
+        .toList().toMutableList()
+    files.shuffle()
 
     var ok = 0; var fail = 0
     var sat = 0; var unsat = 0; var skipped = 0
@@ -41,7 +44,7 @@ fun main(args: Array<String>) {
     )
 
     var curIdx = 0
-    ProgressBar.wrap(files.toList(), "converting smt2 files").forEach {
+    ProgressBar.wrap(files, "converting smt2 files").forEach {
         if (!it.name.endsWith(".smt2")) {
             return@forEach
         }
