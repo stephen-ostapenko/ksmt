@@ -1,10 +1,7 @@
 package io.ksmt.solver.neurosmt
 
 import io.ksmt.KContext
-import io.ksmt.expr.KApp
-import io.ksmt.expr.KConst
-import io.ksmt.expr.KExpr
-import io.ksmt.expr.KInterpretedValue
+import io.ksmt.expr.*
 import io.ksmt.expr.transformer.KNonRecursiveTransformer
 import io.ksmt.sort.*
 import java.io.OutputStream
@@ -23,15 +20,14 @@ class FormulaGraphExtractor(
     private val writer = outputStream.bufferedWriter()
 
     override fun <T : KSort, A : KSort> transformApp(expr: KApp<T, A>): KExpr<T> {
-        exprToVertexID[expr] = currentID++
-
         when (expr) {
             is KInterpretedValue<*> -> writeValue(expr)
             is KConst<*> -> writeSymbolicVariable(expr)
             else -> writeApp(expr)
         }
-
         writer.newLine()
+
+        exprToVertexID[expr] = currentID++
 
         return expr
     }
@@ -54,13 +50,29 @@ class FormulaGraphExtractor(
             is KBvSort -> writer.write("BitVec")
             is KFpSort -> writer.write("FP")
             is KFpRoundingModeSort -> writer.write("FP_RM")
-            is KArraySortBase<*> -> writer.write("Array")
+            is KArraySortBase<*> -> writer.write("Array<${sort.domainSorts.joinToString(",")}>")
             is KUninterpretedSort -> writer.write(sort.name)
             else -> error("unknown sort: ${sort::class.simpleName}")
         }
     }
 
+    private fun <D : KSort, R : KSort> writeLambda(expr: KArrayLambda<D, R>) {
+        if (!exprToVertexID.containsKey(expr)) {
+            exprToVertexID[expr] = currentID++
+        }
+
+        writer.write("SYMBOLIC;")
+        writeSort(expr.sort)
+        writer.newLine()
+    }
+
     private fun <T : KSort, A : KSort> writeApp(expr: KApp<T, A>) {
+        for (child in expr.args) {
+            if (child is KArrayLambda<*, *>) {
+                writeLambda(child)
+            }
+        }
+
         writer.write("${expr.decl.name};")
 
         for (child in expr.args) {

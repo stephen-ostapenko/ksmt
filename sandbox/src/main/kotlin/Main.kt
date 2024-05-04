@@ -11,6 +11,7 @@ import io.ksmt.runner.serializer.AstSerializationCtx
 import io.ksmt.solver.KSolver
 import io.ksmt.solver.KSolverConfiguration
 import io.ksmt.solver.KSolverStatus
+import io.ksmt.solver.neurosmt.FormulaGraphExtractor
 import io.ksmt.solver.neurosmt.KNeuroSMTSolver
 import io.ksmt.solver.neurosmt.getAnswerForTest
 import io.ksmt.solver.neurosmt.runtime.NeuroSMTModelRunner
@@ -137,9 +138,20 @@ fun main() {
 
     val ctx = KContext(
         // astManagementMode = KContext.AstManagementMode.NO_GC,
-        simplificationMode = KContext.SimplificationMode.NO_SIMPLIFY
+        simplificationMode = KContext.SimplificationMode.SIMPLIFY
     )
 
+    val inf = FileInputStream("kek")
+    val assertList = io.ksmt.solver.neurosmt.deserialize(ctx, inf)
+
+    with(ctx) {
+        val formula = mkAnd(assertList)
+
+        val extractor = FormulaGraphExtractor(ctx, formula, System.out)
+        extractor.extractGraph()
+    }
+
+    /*
     with(ctx) {
         val a by boolSort
         val b by intSort
@@ -164,6 +176,8 @@ fun main() {
     }
 
     return
+
+     */
 
     /*val ctx = KContext(
         // astManagementMode = KContext.AstManagementMode.NO_GC,
