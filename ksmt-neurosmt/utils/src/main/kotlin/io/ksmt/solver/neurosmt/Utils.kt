@@ -83,7 +83,9 @@ fun deserialize(ctx: KContext, inputStream: InputStream): List<KExpr<KBoolSort>>
     while (true) {
         try {
             expressions.add(srcMarshaller.read(emptyRdSerializationCtx, buffer).uncheckedCast())
-        } catch (e : IllegalStateException) {
+        } catch (e: IllegalStateException) {
+            break
+        } catch (e: IndexOutOfBoundsException) {
             break
         }
     }
