@@ -17,9 +17,6 @@ from GlobalConstants import MAX_FORMULA_SIZE, MAX_FORMULA_DEPTH
 from GraphReader import read_graph_by_path
 
 
-joblib.externals.loky.process_executor._MAX_MEMORY_LEAK_SIZE = int(3e10)
-
-
 # create a torch_geometric graph
 def create_graph(data):
     nodes, edges, label, depths, edge_depths = data
@@ -116,6 +113,8 @@ def get_dataloader(
         targets = [targets]
 
     print(f"creating dataloader for {targets}")
+
+    joblib.externals.loky.process_executor._MAX_MEMORY_LEAK_SIZE = int(8e24)
 
     ds_dump_path = f"{'-'.join(targets)}_{'-'.join(paths_to_datasets).replace('/', '+')}"
     ds_dump_path = f"{ds_dump_path}_{path_to_ordinal_encoder.replace('/', '+')}"
