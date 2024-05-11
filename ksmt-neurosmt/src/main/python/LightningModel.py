@@ -51,7 +51,7 @@ class LightningModel(pl.LightningModule):
 
     def configure_optimizers(self):
         params = [p for p in self.model.parameters() if p is not None and p.requires_grad]
-        optimizer = torch.optim.Adam(params, lr=self.learning_rate)
+        optimizer = torch.optim.AdamW(params, lr=self.learning_rate, weight_decay=1e-3)
 
         return {
             "optimizer": optimizer,
@@ -59,7 +59,7 @@ class LightningModel(pl.LightningModule):
                 optimizer,
                 mode="min",
                 factor=0.2,
-                patience=7,
+                patience=4,
                 threshold_mode="abs",
                 min_lr=self.learning_rate * 0.02,
                 verbose=True

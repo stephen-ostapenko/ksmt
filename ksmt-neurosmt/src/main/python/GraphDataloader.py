@@ -127,9 +127,12 @@ def get_dataloader(
         print("cache hit!", flush=True)
         ds = torch.load(ds_dump_path)
 
+        data = ds.graphs
+        print(f"stats: {len(data)} overall; sat fraction is {sum(g.y for g in data) / len(data)}")
+
         print("constructing dataloader\n", flush=True)
         return DataLoader(
-            ds.graphs,
+            data,
             batch_size=batch_size, num_workers=num_threads,
             shuffle=shuffle, drop_last=drop_last,
             worker_init_fn=lambda _: torch.multiprocessing.set_sharing_strategy("file_system")
