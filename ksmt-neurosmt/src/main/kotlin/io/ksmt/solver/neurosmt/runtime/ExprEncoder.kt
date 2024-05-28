@@ -3,10 +3,7 @@ package io.ksmt.solver.neurosmt.runtime
 import ai.onnxruntime.OnnxTensor
 import ai.onnxruntime.OrtEnvironment
 import io.ksmt.KContext
-import io.ksmt.expr.KApp
-import io.ksmt.expr.KConst
-import io.ksmt.expr.KExpr
-import io.ksmt.expr.KInterpretedValue
+import io.ksmt.expr.*
 import io.ksmt.expr.transformer.KNonRecursiveTransformer
 import io.ksmt.sort.*
 import java.nio.FloatBuffer
@@ -30,7 +27,7 @@ class ExprEncoder(
     fun encodeExpr(expr: KExpr<*>): OnnxTensor {
         apply(expr)
 
-        return exprToState[expr] ?: error("expression state wasn't calculated yet")
+        return exprToState[expr] ?: error("expression state wasn't calculated yet [$expr]")
     }
 
     override fun <T : KSort, A : KSort> transformApp(expr: KApp<T, A>): KExpr<T> {
@@ -72,7 +69,12 @@ class ExprEncoder(
     }
 
     private fun <T : KSort, A : KSort> calcAppState(expr: KApp<T, A>): OnnxTensor {
-        val childrenStates = expr.args.map { exprToState[it] ?: error("expression state wasn't calculated yet") }
+        val childrenStates = expr.args.map {
+            when (it) {
+                is KArrayLambda<*, *> -> calcLambdaState(it)
+                else -> exprToState[it] ?: error("expression state wasn't calculated yet [$it]")
+            }
+        }
         val childrenCnt = childrenStates.size
 
         val nodeEmbedding = getNodeEmbedding(expr.decl.name)
@@ -92,35 +94,32 @@ class ExprEncoder(
         return OnnxTensor.createTensor(env, result.floatBuffer.slice(0, embeddingSize.toInt()), longArrayOf(1L, embeddingSize))
     }
 
-    private fun <T : KSort> calcSymbolicVariableState(symbol: KConst<T>): OnnxTensor {
-        val sort = symbol.decl.sort
-
-        val key = "SYMBOLIC;" + when (sort) {
+    private fun <T : KSort> getSortStringRepresentation(sort: T): String {
+        return when (sort) {
             is KBoolSort -> "Bool"
+            is KIntSort -> "Int"
+            is KRealSort -> "Real"
             is KBvSort -> "BitVec"
             is KFpSort -> "FP"
             is KFpRoundingModeSort -> "FP_RM"
-            is KArraySortBase<*> -> "Array"
+            is KArraySortBase<*> -> "Array<${sort.domainSorts.joinToString(",")}>"
             is KUninterpretedSort -> sort.name
             else -> error("unknown symbolic sort: ${sort::class.simpleName}")
         }
+    }
 
+    private fun <T : KSort> calcSymbolicVariableState(symbol: KConst<T>): OnnxTensor {
+        val key = "SYMBOLIC;" + getSortStringRepresentation(symbol.decl.sort)
+        return getNodeEmbedding(key)
+    }
+
+    private fun calcLambdaState(lambda: KArrayLambda<*, *>): OnnxTensor {
+        val key = "SYMBOLIC;" + getSortStringRepresentation(lambda.sort)
         return getNodeEmbedding(key)
     }
 
     private fun <T : KSort> calcValueState(value: KInterpretedValue<T>): OnnxTensor {
-        val sort = value.decl.sort
-
-        val key = "VALUE;" + when (sort) {
-            is KBoolSort -> "Bool"
-            is KBvSort -> "BitVec"
-            is KFpSort -> "FP"
-            is KFpRoundingModeSort -> "FP_RM"
-            is KArraySortBase<*> -> "Array"
-            is KUninterpretedSort -> sort.name
-            else -> error("unknown value sort: ${value.decl.sort::class.simpleName}")
-        }
-
+        val key = "VALUE;" + getSortStringRepresentation(value.decl.sort)
         return getNodeEmbedding(key)
     }
 }
