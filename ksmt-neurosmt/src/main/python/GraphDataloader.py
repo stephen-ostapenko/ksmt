@@ -46,7 +46,9 @@ class GraphDataset(Dataset):
 # load one sample
 def load_sample(path_to_sample: str):
     operators, edges, depths, edge_depths = read_graph_by_path(
-        path_to_sample, max_size=MAX_FORMULA_SIZE, max_depth=MAX_FORMULA_DEPTH
+        path_to_sample,
+        min_size=None, min_depth=None,
+        max_size=MAX_FORMULA_SIZE, max_depth=MAX_FORMULA_DEPTH
     )
 
     if operators is None or edges is None or depths is None:

@@ -1,9 +1,11 @@
 import os
 
+from joblib import Parallel, delayed
+
 import numpy as np
 from tqdm import tqdm
 
-from GlobalConstants import MAX_FORMULA_SIZE, MAX_FORMULA_DEPTH
+from GlobalConstants import MIN_FORMULA_SIZE, MIN_FORMULA_DEPTH, MAX_FORMULA_SIZE, MAX_FORMULA_DEPTH
 from GraphReader import read_graph_by_path
 
 
@@ -25,18 +27,31 @@ def select_paths_with_suitable_samples_and_transform_to_paths_from_root(path_to_
 
     print("\nloading paths", flush=True)
 
-    correct_paths = []
-    for path in tqdm(paths):
-        operators, edges, _, _ = read_graph_by_path(path, max_size=MAX_FORMULA_SIZE, max_depth=MAX_FORMULA_DEPTH)
+    def load_path(path):
+        operators, edges, _, _ = read_graph_by_path(
+            path,
+            min_size=MIN_FORMULA_SIZE, min_depth=MIN_FORMULA_DEPTH,
+            max_size=MAX_FORMULA_SIZE, max_depth=MAX_FORMULA_DEPTH
+        )
 
         if operators is None:
-            continue
+            return None
 
         if len(edges) == 0:
             print(f"w: ignoring formula without edges; file '{path}'")
-            continue
+            return None
 
-        correct_paths.append(os.path.relpath(path, path_to_dataset_root))
+        return os.path.relpath(path, path_to_dataset_root)
+
+    num_threads = os.environ["NUM_THREADS"]
+    if num_threads is not None:
+        num_threads = int(num_threads)
+    else:
+        num_threads = 16
+
+    parallel = Parallel(n_jobs=num_threads, return_as="generator")
+    correct_paths = list(parallel(delayed(load_path)(path) for path in tqdm(paths)))
+    correct_paths = list(filter(lambda p: p is not None, correct_paths))
 
     return correct_paths
 

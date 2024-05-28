@@ -42,7 +42,7 @@ def process_line(
         operators.append(name + ";" + info)
 
 
-def read_graph_from_file(inf: TextIO, max_size: int, max_depth: int)\
+def read_graph_from_file(inf: TextIO, min_size: int, min_depth: int, max_size: int, max_depth: int)\
         -> Union[tuple[list[str], list[tuple[int, int]], list[int], list[int]], tuple[None, None, None, None]]:
 
     operators, edges, depth, edge_depths = [], [], [], []
@@ -68,15 +68,21 @@ def read_graph_from_file(inf: TextIO, max_size: int, max_depth: int)\
 
         cur_vertex += 1
 
+    if (min_size is not None and cur_vertex < min_size) or (min_depth is not None and depth[-1] < min_depth):
+        return None, None, None, None
+
     return operators, edges, depth, edge_depths
 
 
-def read_graph_by_path(path: str, max_size: int, max_depth: int) \
-        -> Union[tuple[list[str], list[tuple[int, int]], list[int], list[int]], tuple[None, None, None, None]]:
+def read_graph_by_path(
+    path: str,
+    min_size: Union[int, None], min_depth: Union[int, None],
+    max_size: int, max_depth: int
+) -> Union[tuple[list[str], list[tuple[int, int]], list[int], list[int]], tuple[None, None, None, None]]:
 
     with open(path, "r") as inf:
         try:
-            return read_graph_from_file(inf, max_size, max_depth)
+            return read_graph_from_file(inf, min_size, min_depth, max_size, max_depth)
 
         except Exception as e:
             print(e)
